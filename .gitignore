@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.db
+
+# Entorno
+.env
+.env.*
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Docs privadas y notas de Claude — no van al repo de GitHub
+doc/
+CLAUDE.md
+NORMAS_INAMOVIBLES.md
