@@ -385,6 +385,14 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# invite-client valida el Authorization header a mano dentro de la función
+# (ver supabase/functions/invite-client/index.ts). Desactivamos verify_jwt a
+# nivel de plataforma porque, si no, el preflight OPTIONS del navegador (que
+# no lleva Authorization) se rechazaría con 401 antes de llegar al código de
+# la función, y el navegador nunca vería la respuesta CORS del OPTIONS real.
+[functions.invite-client]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
