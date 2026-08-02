@@ -24,6 +24,7 @@ vi.mock('../../auth/services/profileService', () => ({
 
 import { getSession, onAuthStateChange } from '../../auth/services/authService'
 import { getMyProfile } from '../../auth/services/profileService'
+import { AuthSessionProvider } from '../../auth/context/AuthSessionContext'
 import { ProtectedRoute, isProfilePending } from './ProtectedRoute'
 
 // Re-revisión acotada de la rama (2 agosto 2026): el test de más abajo, con
@@ -77,14 +78,16 @@ describe('ProtectedRoute — race de sesión sin perfil resuelto', () => {
     const recordText = () => seenTexts.push(document.body.textContent)
 
     render(
-      <MemoryRouter initialEntries={['/trainer']}>
-        <Routes>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/trainer" element={<div>PROTECTED_CONTENT</div>} />
-          </Route>
-          <Route path="/consent" element={<div>CONSENT_PAGE</div>} />
-        </Routes>
-      </MemoryRouter>
+      <AuthSessionProvider>
+        <MemoryRouter initialEntries={['/trainer']}>
+          <Routes>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/trainer" element={<div>PROTECTED_CONTENT</div>} />
+            </Route>
+            <Route path="/consent" element={<div>CONSENT_PAGE</div>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthSessionProvider>
     )
     recordText()
     await flushTicks(20)
@@ -108,14 +111,16 @@ describe('ProtectedRoute — race de sesión sin perfil resuelto', () => {
     const recordText = () => seenTexts.push(document.body.textContent)
 
     render(
-      <MemoryRouter initialEntries={['/trainer']}>
-        <Routes>
-          <Route element={<ProtectedRoute />}>
-            <Route path="/trainer" element={<div>PROTECTED_CONTENT</div>} />
-          </Route>
-          <Route path="/consent" element={<div>CONSENT_PAGE</div>} />
-        </Routes>
-      </MemoryRouter>
+      <AuthSessionProvider>
+        <MemoryRouter initialEntries={['/trainer']}>
+          <Routes>
+            <Route element={<ProtectedRoute />}>
+              <Route path="/trainer" element={<div>PROTECTED_CONTENT</div>} />
+            </Route>
+            <Route path="/consent" element={<div>CONSENT_PAGE</div>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthSessionProvider>
     )
     recordText()
     await flushTicks(20)

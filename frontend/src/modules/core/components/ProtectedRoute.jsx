@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuthSession } from '../../auth/hooks/useAuthSession'
+import { useAuthSessionContext } from '../../auth/context/AuthSessionContext'
 import { useMyProfile } from '../../auth/hooks/useMyProfile'
 
 // isProfileLoading por sí solo no basta: cuando `session` pasa de null a un
@@ -20,7 +20,7 @@ const profileFailed = (error) => error && <p className="text-red-600">No se pudo
 const needsConsent = (profile) => profile && !profile.consentAcceptedAt && <Navigate to="/consent" replace />
 
 export const ProtectedRoute = () => {
-  const { session, isLoading: isSessionLoading } = useAuthSession()
+  const { session, isLoading: isSessionLoading } = useAuthSessionContext()
   const { profile, isLoading: isProfileLoading, error } = useMyProfile(session?.user?.id)
 
   return (

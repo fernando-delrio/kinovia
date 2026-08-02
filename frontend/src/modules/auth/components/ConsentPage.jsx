@@ -1,9 +1,9 @@
 import { useNavigate } from 'react-router-dom'
-import { useAuthSession } from '../hooks/useAuthSession'
+import { useAuthSessionContext } from '../context/AuthSessionContext'
 import { useMyProfile } from '../hooks/useMyProfile'
 
 export const ConsentPage = () => {
-  const { session } = useAuthSession()
+  const { session } = useAuthSessionContext()
   const { profile, accept, error, isLoading } = useMyProfile(session?.user?.id)
   const navigate = useNavigate()
 

@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { useAuthSession } from '../../auth/hooks/useAuthSession'
+import { useAuthSessionContext } from '../../auth/context/AuthSessionContext'
 
 // Guard de solo sesión: exige estar logueado, pero NO exige consentimiento
 // aceptado. Existe porque ProtectedRoute (que sí exige consentimiento)
@@ -10,6 +10,6 @@ const loadingState = (isLoading) => isLoading && <p>Cargando…</p>
 const unauthenticated = (session) => !session && <Navigate to="/login" replace />
 
 export const SessionRoute = () => {
-  const { session, isLoading } = useAuthSession()
+  const { session, isLoading } = useAuthSessionContext()
   return loadingState(isLoading) || unauthenticated(session) || <Outlet />
 }
