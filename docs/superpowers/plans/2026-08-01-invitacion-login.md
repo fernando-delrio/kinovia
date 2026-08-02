@@ -675,6 +675,107 @@ migración de Task 1 antes de dar la tarea por cerrada.
 
 ---
 
+### Task 8.5: Restringir columnas actualizables en `profiles` — fix de seguridad crítico
+
+> Insertada el 2 de agosto de 2026. Hallazgo real de `rls-reviewer` durante
+> Task 8, confirmado con un exploit en vivo contra el proyecto: la política
+> `profiles_update_own` (migración `20260731215234_profiles_rls.sql`) solo
+> comprueba que la fila es del usuario — no restringe qué columnas puede
+> cambiar. Cualquier cliente autenticado podía ejecutar
+> `update profiles set role='trainer', trainer_id=null where id=auth.uid()`
+> y auto-promocionarse a entrenador, lo que después pasa el check de
+> `invite-client` (que solo mira `role === 'trainer'` en la tabla). No
+> estaba en el plan original — es una corrección, no una feature.
+
+**Files:**
+- Create: `supabase/migrations/<timestamp>_profiles_restrict_update_columns.sql`
+- Modify: `frontend/test/rls/profiles.rls.test.js`
+
+**Interfaces:**
+- Produces: `authenticated` pierde el UPDATE genérico sobre `profiles` y
+  gana uno limitado a `display_name, consent_accepted_at` — `role` y
+  `trainer_id` dejan de ser modificables por el propio usuario a nivel de
+  motor (GRANT por columna), no solo por RLS.
+
+- [ ] **Step 1: Generar la migración**
+
+```bash
+cd "c:\Users\FeR\OneDrive\Escritorio\full stack\entrenamientos\.worktrees\invitacion-login"
+supabase migration new profiles_restrict_update_columns
+```
+
+- [ ] **Step 2: Escribir la migración**
+
+```sql
+-- Hallazgo de seguridad real (Task 8, rls-reviewer, 2 agosto 2026):
+-- profiles_update_own solo comprobaba que la fila era del usuario, sin
+-- restringir qué columnas podía cambiar. Un cliente podía ejecutar
+--   update profiles set role='trainer', trainer_id=null where id=auth.uid()
+-- y auto-promocionarse a entrenador — confirmado con un exploit real
+-- contra el proyecto, no solo en teoría.
+--
+-- El GRANT a nivel de columna es la defensa correcta: Postgres rechaza la
+-- operación a nivel de motor si toca una columna no concedida, sin
+-- depender de que la política RLS (USING/WITH CHECK) lo capture. RLS
+-- sigue decidiendo QUÉ FILA; el GRANT por columna decide QUÉ CAMPO.
+revoke update on public.profiles from authenticated;
+grant update (display_name, consent_accepted_at) on public.profiles to authenticated;
+```
+
+- [ ] **Step 3: Aplicar la migración**
+
+```bash
+supabase db push
+```
+Confirma con `y`. Verifica con `supabase migration list` que `local` y
+`remote` coinciden.
+
+- [ ] **Step 4: Añadir los tests que prueban el arreglo (y que no rompe lo legítimo)**
+
+```js
+// añadir dentro del describe('profiles RLS', ...) existente en
+// frontend/test/rls/profiles.rls.test.js
+
+it('un cliente NO puede auto-promocionarse a trainer', async () => {
+  const asClientOfA = await signInAs(clientOfA.email)
+  const { error } = await asClientOfA
+    .from('profiles')
+    .update({ role: 'trainer', trainer_id: null })
+    .eq('id', clientOfA.id)
+  expect(error).not.toBeNull()
+
+  const { data: realRow } = await adminClient.from('profiles').select('role').eq('id', clientOfA.id).single()
+  expect(realRow.role).toBe('client')
+})
+
+it('un usuario SÍ puede seguir actualizando su propio display_name', async () => {
+  const asClientOfA = await signInAs(clientOfA.email)
+  const { data, error } = await asClientOfA
+    .from('profiles')
+    .update({ display_name: 'Nombre actualizado' })
+    .eq('id', clientOfA.id)
+    .select('display_name')
+  expect(error).toBeNull()
+  expect(data[0].display_name).toBe('Nombre actualizado')
+})
+```
+
+- [ ] **Step 5: Ejecutar y confirmar que pasa**
+
+```bash
+cd frontend && npx vitest run test/rls/profiles.rls.test.js
+```
+Esperado: todos los tests en verde, incluyendo los 2 nuevos.
+
+- [ ] **Step 6: Re-dispatch del subagente `rls-reviewer`**
+
+Sobre esta migración nueva — confirma explícitamente que el exploit de
+auto-promoción ya NO funciona (repetir el intento de la sección de
+hallazgos de Task 8) y que `acceptConsent`/`display_name` siguen
+funcionando.
+
+---
+
 ### Task 9: Páginas — signup, login, accept-invite, consent, dashboards mínimos
 
 **Files:**
