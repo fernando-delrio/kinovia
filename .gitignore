@@ -22,3 +22,6 @@ Thumbs.db
 doc/
 CLAUDE.md
 NORMAS_INAMOVIBLES.md
+
+# Worktrees de trabajo (Superpowers, etc.) — nunca contenido a comitear
+.worktrees/
