@@ -1,0 +1,13 @@
+-- Hallazgo de la revisión de la Task 5: create_organization() comprueba
+-- "organization_id is null" con un SELECT simple, no atado atómicamente al
+-- INSERT/UPDATE posterior (a diferencia de accept_consent(), que sí
+-- resuelve esto con un UPDATE ... WHERE ... is null en un solo paso). Dos
+-- llamadas concurrentes del mismo entrenador podrían crear dos
+-- organizaciones, dejando una huérfana en profiles.organization_id.
+--
+-- No es una fuga entre tenants (la organización huérfana sigue siendo
+-- solo visible para su propio owner_id), pero es un dato inconsistente
+-- evitable. Este índice único convierte la carrera en un INSERT fallido
+-- limpio en vez de una fila huérfana silenciosa — sin tener que reescribir
+-- la función.
+create unique index organizations_owner_id_key on public.organizations (owner_id);

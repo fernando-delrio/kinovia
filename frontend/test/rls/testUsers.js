@@ -12,7 +12,7 @@ const TEST_PASSWORD = 'rls-test-password-123!'
 
 const randomEmail = (label) => `rls-test-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}@kinovia.test`
 
-export const createTestUser = async ({ label, role, trainerId }) => {
+export const createTestUser = async ({ label, role, trainerId, organizationId }) => {
   const email = randomEmail(label)
   const { data, error } = await adminClient.auth.admin.createUser({
     email,
@@ -23,7 +23,7 @@ export const createTestUser = async ({ label, role, trainerId }) => {
 
   const { error: profileError } = await adminClient
     .from('profiles')
-    .insert({ id: data.user.id, role, trainer_id: trainerId ?? null, display_name: label })
+    .insert({ id: data.user.id, role, trainer_id: trainerId ?? null, organization_id: organizationId ?? null, display_name: label })
   if (profileError) throw profileError
 
   return { id: data.user.id, email }
@@ -40,5 +40,6 @@ export const signInAs = async (email) => {
 }
 
 export const deleteTestUser = async (userId) => {
-  await adminClient.auth.admin.deleteUser(userId)
+  const { error } = await adminClient.auth.admin.deleteUser(userId)
+  if (error) throw error
 }

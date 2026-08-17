@@ -16,11 +16,11 @@ import { getMyProfile, acceptConsent, createTrainerProfile } from './profileServ
 describe('profileService', () => {
   it('getMyProfile normaliza la fila de profiles', async () => {
     single.mockResolvedValue({
-      data: { role: 'trainer', trainer_id: null, consent_accepted_at: null, display_name: null },
+      data: { role: 'trainer', trainer_id: null, consent_accepted_at: null, display_name: null, organization_id: 'org-1' },
       error: null,
     })
     const profile = await getMyProfile('1')
-    expect(profile).toEqual({ role: 'trainer', trainerId: null, consentAcceptedAt: null, displayName: null })
+    expect(profile).toEqual({ role: 'trainer', trainerId: null, consentAcceptedAt: null, displayName: null, organizationId: 'org-1' })
   })
 
   it('getMyProfile lanza con el mensaje de Supabase si falla', async () => {

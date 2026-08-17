@@ -5,12 +5,13 @@ const toProfile = (row) => ({
   trainerId: row.trainer_id,
   consentAcceptedAt: row.consent_accepted_at,
   displayName: row.display_name,
+  organizationId: row.organization_id,
 })
 
 export const getMyProfile = async (userId) => {
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, trainer_id, consent_accepted_at, display_name')
+    .select('role, trainer_id, consent_accepted_at, display_name, organization_id')
     .eq('id', userId)
     .single()
   if (error) throw new Error(error.message)

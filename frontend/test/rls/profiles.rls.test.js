@@ -179,4 +179,55 @@ describe('profiles RLS', () => {
       .eq('id', trainerA.id)
     expect(error).not.toBeNull()
   })
+
+  it('el admin de una organización ve el display_name de los clientes de sus entrenadores', async () => {
+    const orgAdmin = await createTestUser({ label: 'profiles-org-admin', role: 'trainer' })
+    const asOrgAdmin = await signInAs(orgAdmin.email)
+    const { data: orgId } = await asOrgAdmin.rpc('create_organization', { org_name: 'Gimnasio profiles test', org_type: 'gym' })
+
+    const orgTrainer = await createTestUser({ label: 'profiles-org-trainer', role: 'trainer', organizationId: orgId })
+    const orgClient = await createTestUser({ label: 'profiles-org-client', role: 'client', trainerId: orgTrainer.id })
+
+    const { data, error } = await asOrgAdmin.from('profiles').select('id, display_name').eq('id', orgClient.id)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(1)
+    expect(data[0].display_name).toBe('profiles-org-client')
+
+    await Promise.all([orgAdmin, orgTrainer, orgClient].map((u) => deleteTestUser(u.id)))
+    await adminClient.from('organizations').delete().eq('id', orgId)
+  })
+
+  it('un entrenador que NO es admin de ninguna organización NO ve clientes ajenos vía el directorio', async () => {
+    const asTrainerA = await signInAs(trainerA.email)
+    const { data, error } = await asTrainerA.from('profiles').select('id').eq('id', clientOfA.id).neq('trainer_id', trainerA.id)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+  })
+
+  // Hallazgo de rls-reviewer (Task 12): el test anterior compara clientOfA
+  // (trainer_id = trainerA.id) contra "neq trainer_id trainerA.id" — un
+  // predicado imposible de satisfacer por construcción, así que da vacío
+  // pase lo que pase con RLS (no ejercita profiles_select_org_admin_clients
+  // en ningún escenario real). Este test SÍ prueba el escenario adversarial
+  // que pide el plan: el admin de la organización A no puede ver, vía el
+  // directorio, clientes de una organización B ajena.
+  it('el admin de una organización NO ve clientes de una organización ajena vía el directorio', async () => {
+    const orgAdminA = await createTestUser({ label: 'profiles-cross-org-admin-a', role: 'trainer' })
+    const asOrgAdminA = await signInAs(orgAdminA.email)
+    const { data: orgAId } = await asOrgAdminA.rpc('create_organization', { org_name: 'Gimnasio cruzado A', org_type: 'gym' })
+
+    const orgAdminB = await createTestUser({ label: 'profiles-cross-org-admin-b', role: 'trainer' })
+    const asOrgAdminB = await signInAs(orgAdminB.email)
+    const { data: orgBId } = await asOrgAdminB.rpc('create_organization', { org_name: 'Gimnasio cruzado B', org_type: 'gym' })
+
+    const trainerInB = await createTestUser({ label: 'profiles-cross-org-trainer-b', role: 'trainer', organizationId: orgBId })
+    const clientOfTrainerInB = await createTestUser({ label: 'profiles-cross-org-client-b', role: 'client', trainerId: trainerInB.id })
+
+    const { data, error } = await asOrgAdminA.from('profiles').select('id').eq('id', clientOfTrainerInB.id)
+    expect(error).toBeNull()
+    expect(data).toHaveLength(0)
+
+    await Promise.all([orgAdminA, orgAdminB, trainerInB, clientOfTrainerInB].map((u) => deleteTestUser(u.id)))
+    await Promise.all([orgAId, orgBId].map((id) => adminClient.from('organizations').delete().eq('id', id)))
+  })
 })

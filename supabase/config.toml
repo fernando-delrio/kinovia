@@ -393,6 +393,13 @@ deno_version = 2
 [functions.invite-client]
 verify_jwt = false
 
+# Mismo motivo que invite-client: el propio código valida el Authorization
+# header a mano, y verify_jwt=true a nivel de plataforma rechazaría el
+# preflight OPTIONS del navegador (sin Authorization) antes de que la
+# función pudiera responder con las cabeceras CORS.
+[functions.invite-trainer]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
