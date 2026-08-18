@@ -39,7 +39,20 @@ export const signInAs = async (email) => {
   return client
 }
 
-export const deleteTestUser = async (userId) => {
+const isRetryableAuthError = (error) => error?.name === 'AuthRetryableFetchError'
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// auth.admin.deleteUser() falla de forma intermitente cuando varios borrados
+// se disparan a la vez (Promise.all de varios usuarios en un mismo test) —
+// el propio nombre del error ("Retryable") indica que es transitorio, no un
+// fallo real. Reintenta un par de veces con backoff antes de darlo por malo.
+export const deleteTestUser = async (userId, attempt = 1) => {
   const { error } = await adminClient.auth.admin.deleteUser(userId)
-  if (error) throw error
+  if (!error) return
+  if (isRetryableAuthError(error) && attempt < 3) {
+    await wait(1000 * attempt)
+    return deleteTestUser(userId, attempt + 1)
+  }
+  throw error
 }
